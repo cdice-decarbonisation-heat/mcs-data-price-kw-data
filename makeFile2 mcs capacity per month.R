@@ -7,13 +7,21 @@ mcs_1_df <-
   'data/MCS data/mcs pv capacity 2010-2019.csv' %>%
   read_csv(skip = 2)
 
-outcode_lookup_df <-read_csv('outputs/outcode to la lookup.csv')
+mcs_2_df <- 
+  'data/MCS data/mcs pv capacity 2020-2024.csv' %>%
+  read_csv(skip = 2)
 
+
+outcode_lookup_df <-read_csv('outputs/outcode to la lookup.csv')
 
 
 # QA check ----------------------------------------------------------------
 
+
+
 names(mcs_1_df) ## I think the last col is the total number
+names(mcs_2_df)
+
 
 missing_QA <- 
   mcs_1_df %>% 
@@ -36,31 +44,71 @@ missing_QA %>%
 # - Some PCD had lower case -- fixed now to all upper
 # - get rid of ...122 col 
 
+
+# QA mcs2 file ------------------------------------------------------------
+no_join_df <-
+  mcs_2_df %>%
+  filter(
+    !(
+      toupper(`Short Postcode`) %in% toupper(mcs_1_df$`Short Postcode`) 
+    )
+  )
+
+## only 114 unmacthed? 
+## I think due to incorrect outcode? 
+
+missing_QA <- 
+  mcs_2_df %>% 
+  filter(
+    !(
+      toupper(`Short Postcode`) %in% outcode_lookup_df$outcode
+    )
+  )
+
+## issues
+# - smaller list but i guess valid 
+# - i can see a few msitakes due to data inputs should be okay to join
+
+
+
+
 # 1. postcode outcode -----------------------------------------------------
 
+mcs_capacity_df <-
+  mcs_1_df %>%
+  mutate(`Short Postcode` = `Short Postcode` %>% toupper) %>%
+  ## full join to combine all 
+  full_join(
+    mcs_2_df %>%
+      mutate(`Short Postcode` = `Short Postcode` %>% toupper) 
+  )
+
+## The full join should add additional NA counts for dates not originally in a dataset
+## Get if BS20 has no entries in the 2020-2024 table -- 
+## the full join will add cols and give it NA entries
 
 ## Fixes
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   mutate(`Short Postcode` = `Short Postcode` %>% toupper) %>%
   select(-...122)
 
 
 ## pivot
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   pivot_longer(!`Short Postcode`, names_to = 'month', values_to = 'kw_capacity')
 
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   rename(outcode = `Short Postcode`) %>%
   left_join(
     outcode_lookup_df
   )
 
 ## replace NA with zeros
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   replace_na(
     list(kw_capacity = 0)
   )
@@ -71,12 +119,12 @@ mcs_1_df <-
 # %b = abbreviated month
 # %y = two digit year 
 
-# mcs_1_df$month[1:10]
-# mcs_1_df$month[1:10] %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month 
+# mcs_capacity_df$month[1:10]
+# mcs_capacity_df$month[1:10] %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month 
 
 
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   mutate(
     month = month %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month
   )
@@ -85,8 +133,8 @@ mcs_1_df <-
 
 
 
-mcs_1_df <-
-  mcs_1_df %>%
+mcs_capacity_df <-
+  mcs_capacity_df %>%
   group_by(LAD21NM, month) %>%
   summarise(
     kw_capacity = sum(kw_capacity)
@@ -95,4 +143,4 @@ mcs_1_df <-
 
 # output ------------------------------------------------------------------
 
-mcs_1_df %>% write_csv('outputs/mcs capacity per month (2010-2019).csv')
+mcs_capacity_df %>% write_csv('outputs/mcs capacity per month (2010-2024).csv')
