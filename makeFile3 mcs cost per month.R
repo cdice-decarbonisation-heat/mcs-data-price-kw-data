@@ -12,7 +12,8 @@ mcs_2_df <-
   read_csv(skip = 2)
 
 
-outcode_lookup_df <-read_csv('outputs/outcode to la lookup.csv')
+outcode_lookup_df <-
+  read_csv('outputs/outcode to la lookup.csv')
 
 
 # QA check ----------------------------------------------------------------
@@ -66,7 +67,7 @@ missing_QA <-
 
 # 1. postcode outcode -----------------------------------------------------
 
-mcs_capacity_df <-
+mcs_price_df <-
   mcs_1_df %>%
   mutate(`Short Postcode` = `Short Postcode` %>% toupper) %>%
   ## full join to combine all 
@@ -79,28 +80,41 @@ mcs_capacity_df <-
 ## Get if BS20 has no entries in the 2020-2024 table -- 
 ## the full join will add cols and give it NA entries
 
-## Fixes
-mcs_capacity_df <-
-  mcs_capacity_df %>%
-  mutate(`Short Postcode` = `Short Postcode` %>% toupper) %>%
-  select(-...122)
-
 
 ## pivot
-mcs_capacity_df <-
-  mcs_capacity_df %>%
-  pivot_longer(!`Short Postcode`, names_to = 'month', values_to = 'kw_capacity')
+mcs_price_df <-
+  mcs_price_df %>%
+  pivot_longer(!`Short Postcode`, names_to = 'month', values_to = 'avg_price')
 
-mcs_capacity_df <-
-  mcs_capacity_df %>%
+
+## Fix price data
+mcs_price_df <-
+  mcs_price_df %>%
+  mutate(
+    avg_price = avg_price %>% gsub('<a3>|,|£', '', x = .)
+  ) 
+  
+mcs_price_df <-
+  mcs_price_df %>%
+  mutate(
+    avg_price = avg_price %>% as.numeric
+  )
+
+# check <- mcs_price_df%>% na.omit
+##
+
+## join to la
+mcs_price_df <-
+  mcs_price_df %>%
   rename(outcode = `Short Postcode`) %>%
   left_join(
     outcode_lookup_df
   )
 
+
 ## replace NA with zeros
-mcs_capacity_df <-
-  mcs_capacity_df %>%
+mcs_price_df <-
+  mcs_price_df %>%
   replace_na(
     list(kw_capacity = 0)
   )
@@ -111,28 +125,34 @@ mcs_capacity_df <-
 # %b = abbreviated month
 # %y = two digit year 
 
-# mcs_capacity_df$month[1:10]
-# mcs_capacity_df$month[1:10] %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month 
+# mcs_price_df$month[1:10]
+# mcs_price_df$month[1:10] %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month 
 
 
-mcs_capacity_df <-
-  mcs_capacity_df %>%
+mcs_price_df <-
+  mcs_price_df %>%
   mutate(
     month = month %>% lubridate::as_date(format = '%b-%y') ## sets as first of the month
   )
+
+
+
+# 3. Join to volume datas -------------------------------------------------
+
+
 
 ## 3. Aggregate to LA level ---------------------------------------------------
 
 
 
-mcs_capacity_df <-
-  mcs_capacity_df %>%
+mcs_price_df <-
+  mcs_price_df %>%
   group_by(LAD21NM, month) %>%
   summarise(
-    kw_capacity = sum(kw_capacity)
+    avg_price = sum(kw_capacity)
   )
 
 
 # output ------------------------------------------------------------------
 
-mcs_capacity_df %>% write_csv('outputs/mcs capacity per month (2010-2024).csv')
+mcs_price_df %>% write_csv('outputs/mcs capacity per month (2010-2024).csv')
