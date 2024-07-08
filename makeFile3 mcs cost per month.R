@@ -115,11 +115,6 @@ mcs_price_n_df <-
       mutate(`Short Postcode` = `Short Postcode` %>% toupper) 
   )
 
-## The full join should add additional NA counts for dates not originally in a dataset
-## Get if BS20 has no entries in the 2020-2024 table -- 
-## the full join will add cols and give it NA entries
-
-
 ## pivot
 mcs_price_n_df <-
   mcs_price_n_df %>%
