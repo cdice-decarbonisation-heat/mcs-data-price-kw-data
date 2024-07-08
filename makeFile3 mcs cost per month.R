@@ -3,6 +3,7 @@
 library(tidyverse)
 library(lubridate)
 
+## cost data
 mcs_1_df <- 
   'data/MCS data/mcs pv cost 2010-2019.csv' %>%
   read_csv(skip = 2)
@@ -12,53 +13,52 @@ mcs_2_df <-
   read_csv(skip = 2)
 
 
+## counts -- eligible counts 
+mcs_1_n_df <- 
+  'data/MCS data/mcs pv cost 2010-2019 (counts).csv' %>%
+  read_csv(skip = 2)
+
+mcs_2_n_df <- 
+  'data/MCS data/mcs pv cost 2020-2024 (counts).csv' %>%
+  read_csv(skip = 2)
+
+
+## outcode to la lookup
 outcode_lookup_df <-
   read_csv('outputs/outcode to la lookup.csv')
 
 
 # QA check ----------------------------------------------------------------
+check_dfs <- 
+  list(mcs_1_df, mcs_2_df,
+       mcs_1_n_df, mcs_2_n_df) 
 
-
-
-names(mcs_1_df) ## I think the last col is the total number
-names(mcs_2_df)
+check_dfs %>%
+  map(names)
 
 
 missing_QA <- 
-  mcs_1_df %>% 
-  filter(
-    !(
-      toupper(`Short Postcode`) %in% outcode_lookup_df$outcode
-    )
+  check_dfs %>% 
+  map(
+    .f = function(x){
+      x %>% 
+        filter(
+        !(
+          toupper(`Short Postcode`) %in% outcode_lookup_df$outcode
+        )
+        )  
+    }
   )
+  
 ## similar issues to the capacity file 
+missing_QA
 missing_QA %>% nrow() ## this many unlinked
 
-### issues and fixes
+### issues and fixes -- mcs1
 # - Some PCD had lower case -- fixed now to all upper
 # - remove £ sign and commas0
 
-# QA mcs2 file ------------------------------------------------------------
-no_join_df <-
-  mcs_2_df %>%
-  filter(
-    !(
-      toupper(`Short Postcode`) %in% toupper(mcs_1_df$`Short Postcode`) 
-    )
-  )
-
-## only 114 unmacthed? 
-## I think due to incorrect outcode? 
-
-missing_QA <- 
-  mcs_2_df %>% 
-  filter(
-    !(
-      toupper(`Short Postcode`) %in% outcode_lookup_df$outcode
-    )
-  )
-
-## issues
+## issues - mcs 2
 # - smaller list but i guess valid 
 # - i can see a few msitakes due to data inputs should be okay to join
 
@@ -103,7 +103,39 @@ mcs_price_df <-
 # check <- mcs_price_df%>% na.omit
 ##
 
-## join to la
+
+# 2. format the count data ------------------------------------------------
+
+mcs_price_n_df <-
+  mcs_1_n_df %>%
+  mutate(`Short Postcode` = `Short Postcode` %>% toupper) %>%
+  ## full join to combine all 
+  full_join(
+    mcs_2_n_df %>%
+      mutate(`Short Postcode` = `Short Postcode` %>% toupper) 
+  )
+
+## The full join should add additional NA counts for dates not originally in a dataset
+## Get if BS20 has no entries in the 2020-2024 table -- 
+## the full join will add cols and give it NA entries
+
+
+## pivot
+mcs_price_n_df <-
+  mcs_price_n_df %>%
+  pivot_longer(!`Short Postcode`, names_to = 'month', values_to = 'avg_price_n')
+
+
+
+## 3. join together and join to la ---------------------------------------------------------
+
+mcs_price_df <-
+  mcs_price_df %>%
+  left_join(
+    mcs_price_n_df
+  )
+
+
 mcs_price_df <-
   mcs_price_df %>%
   rename(outcode = `Short Postcode`) %>%
@@ -116,7 +148,8 @@ mcs_price_df <-
 mcs_price_df <-
   mcs_price_df %>%
   replace_na(
-    list(kw_capacity = 0)
+    list(avg_price = 0,
+         avg_price_n = 0)
   )
 
 
@@ -137,9 +170,26 @@ mcs_price_df <-
 
 
 
-# 3. Join to volume datas -------------------------------------------------
+# QA and data validation  ------------------------------------------------------
+# check for avg prices without counts (and vice versa)
+mcs_price_df %>%
+  filter(
+    (avg_price >0) & (avg_price_n == 0)
+  )
 
+mcs_price_df %>%
+  filter(
+    (avg_price  == 0) & (avg_price_n > 0)
+  )
+## okay 1 valid entry but lack
 
+mcs_price_df <-
+  mcs_price_df %>%
+  filter(
+    !(
+      (avg_price  == 0) & (avg_price_n > 0) ## essentially free panels
+    )
+  )
 
 ## 3. Aggregate to LA level ---------------------------------------------------
 
@@ -149,10 +199,11 @@ mcs_price_df <-
   mcs_price_df %>%
   group_by(LAD21NM, month) %>%
   summarise(
-    avg_price = sum(kw_capacity)
+    total_price = sum(avg_price*avg_price_n),
+    total_price_n = sum(avg_price_n),
+    avg_price_la = weighted.mean(avg_price, avg_price_n)
   )
-
 
 # output ------------------------------------------------------------------
 
-mcs_price_df %>% write_csv('outputs/mcs capacity per month (2010-2024).csv')
+mcs_price_df %>% write_csv('outputs/mcs price per month (2010-2024).csv')
