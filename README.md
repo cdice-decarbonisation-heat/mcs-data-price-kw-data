@@ -11,6 +11,8 @@ Both tables cover the period from January 2010 to January 2024 and are stored in
 
 ## Data
 
+A lookup table on UK postcodes to local authority is required. This is open data available from the ONS (Aug 2023 version used). 
+
 Monthly data on installation price and kW capacity was provided to us at postcode outcode level by the MCS in July 2024. A postcode outcode is the first part of a full postcode (e.g., CF24 instead of CF24 1AA).
 
 ### Original MCS data specification
