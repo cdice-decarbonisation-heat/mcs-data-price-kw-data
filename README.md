@@ -24,7 +24,7 @@ Data on total MCS installations and other statistics can be accessed via the [MC
 ## Limitations
 
 - **Outcode to LA mismatches:** There is not a perfect match between postcode outcode boundaries and LA boundaries. Some postcode outcodes are split across two or more LAs. In most cases, the vast majority of an outcode is in one LA (i.e., 95% or more of the outcode in one LA in 70% of cases). In less than 5% of cases, 60% or less of a postcode outcode is in an LA.
-- **Invalid outcodes:** In a very small number of cases (<3%), the outcode could not be found, filtering out a tiny number of installations.
+- **Invalid outcodes:** In a very small number of cases (< 3%), the outcode could not be found, filtering out a tiny number of installations.
 - **Changes in valid sample size over time:** The accuracy of MCS price data has increased over time. In 2015, 58.9% of installations had valid price data, and this percentage rose steadily to 76.2% in 2019. In 2020, a significant improvement in accuracy led to a 97.8% validity.
 
 ## Contact
