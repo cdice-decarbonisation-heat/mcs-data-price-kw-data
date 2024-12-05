@@ -4,8 +4,11 @@ This repository contains data cleaning scripts for the Microgeneration Certifica
 
 - Monthly installed solar PV capacity (0-50kW) by local authority (LA).
 - Average installation cost of PV systems (£1,000-£250,000) by local authority (LA).
+- A combined table of capacity and cost which includes cost per kw calculated using the previous two tables. 
 
-Both tables cover the period from January 2010 to January 2024 and are stored in the `outputs` folder. The R code for creating the aggregated data is stored in the main repository folder (prefixed with `makeFile`).
+All tables cover the period from January 2010 to January 2024 and are stored in the `outputs` folder. The R code for creating the aggregated data is stored in the main repository folder (prefixed with `makeFile`).
+
+
 
 **Note:** This is not an official MCS data release and relies on a snapshot of the MCS installation database, which is updated over time. This data was supplied for the purposes of research.
 
@@ -27,7 +30,7 @@ Data on total MCS installations and other statistics can be accessed via the [MC
 
 - **Outcode to LA mismatches:** There is not a perfect match between postcode outcode boundaries and LA boundaries. Some postcode outcodes are split across two or more LAs. In most cases, the vast majority of an outcode is in one LA (i.e., 95% or more of the outcode in one LA in 70% of cases). In less than 5% of cases, 60% or less of a postcode outcode is in an LA.
 - **Invalid outcodes:** In a very small number of cases (< 3%), the outcode could not be found, filtering out a tiny number of installations.
-- **Changes in valid sample size over time:** The accuracy of MCS price data has increased over time. In 2015, 58.9% of installations had valid price data, and this percentage rose steadily to 76.2% in 2019. In 2020, a significant improvement in accuracy led to a 97.8% validity.
+- **Changes in valid sample size over time:** The accuracy of MCS price data has increased over time. In 2015, 58.9% of installations had valid price data, and this percentage rose steadily to 76.2% in 2019. In 2020, a significant improvement in accuracy led to a 97.8% validity. For calculating cost per kw data, we omitted four cases where the number of valid capacity data did not match the number of valid cost data. 
 
 ## Contact
 
